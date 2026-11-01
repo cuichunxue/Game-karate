@@ -1375,7 +1375,7 @@ function updateCamera(dtR){
   const tYaw=pl.yaw+side+(auto?.55*Math.sin(now*.11):0);
   cam.yaw+=angDiff(cam.yaw,tYaw)*(1-Math.exp(-dtR*(rate+(side?1.2:0))));
   const kt=mv==='karatake'||mv==='nukido',sl=mv==='slide',close=kt||pl.state==='parry';
-  const dist=close?4.6:sl?6:6.4,h=close?1.7:sl?2.4:2.75;
+  const dist=(close?4.6:sl?6:6.4)+PORT*.6,h=(close?1.7:sl?2.4:2.75)+PORT*.6;
   const want=new V(pp.x-Math.sin(cam.yaw)*dist,h,pp.z-Math.cos(cam.yaw)*dist);
   camera.position.lerp(want,1-Math.exp(-dtR*5));
   const f=fwdOf(pl.yaw),lk=new V(pp.x+f.x*1.2,1.05+pp.y*.5+pl.P.bodyY*.4,pp.z+f.z*1.2);
@@ -1385,11 +1385,18 @@ function updateCamera(dtR){
   camera.position.x+=rand(-1,1)*sh;camera.position.y+=rand(-1,1)*sh;
   camera.lookAt(cam.look);
   cam.kick*=Math.exp(-dtR*9);const tf=(sl?66:close?52:56)-cam.kick;cam.fov+=(tf-cam.fov)*(1-Math.exp(-dtR*(cam.kick>1?22:6)));
-  camera.fov=cam.fov;camera.updateProjectionMatrix();
+  /* portrait: widen the vertical FOV so the horizontal view stays close to a 3:4 screen's */
+  camera.fov=camera.aspect<.75?2*Math.atan(Math.tan(cam.fov*Math.PI/360)*.75/camera.aspect)*180/Math.PI:cam.fov;
+  camera.updateProjectionMatrix();
 }
 
 /* ---------- loop ---------- */
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+let PORT=0;
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
+  PORT=clamp((1.2-w/h)/.7,0,1);
+  /* on tall screens shift the frame so the fighters sit above the touch controls */
+  if(PORT>0)camera.setViewOffset(w,h,0,Math.round(h*.1*PORT),w,h);else camera.clearViewOffset();
+  camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 for(let i=0;i<4;i++)spawnEnemy();
 applyPose(player,POSE.kamae,1);setHP();
