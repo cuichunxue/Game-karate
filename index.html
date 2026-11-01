@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Goken Karate</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Saira+Condensed:wght@600;800&family=JetBrains+Mono:wght@500;700&display=swap">
@@ -16,7 +16,7 @@
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
 }
-html,body{height:100%;margin:0;overflow:hidden;background:var(--room);color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{height:100%;margin:0;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-text-size-adjust:100%;background:var(--room);color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;transition:filter .25s}
 #vig{position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%)}
 .hud{position:fixed;pointer-events:none;z-index:6}
@@ -1115,6 +1115,14 @@ const sndBtn=$('snd'),sndTxt=$('sndTxt');
 function setSndUI(){const on=SFX.live;sndBtn.classList.toggle('off',!on);sndBtn.setAttribute('aria-pressed',on?'true':'false');sndTxt.textContent=on?'音 オン':'音 オフ';}
 sndBtn.addEventListener('click',e=>{e.stopPropagation();SFX.toggle();setSndUI();});
 SFX.onchange=setSndUI;
+/* iOS Safari ignores user-scalable=no: block pinch / double-tap zoom and page scrolling so the game always fits the screen */
+['gesturestart','gesturechange','gestureend','dblclick'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||!e.target.closest('button'))e.preventDefault();},{passive:false});
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{const t=Date.now();if(t-lastTouchEnd<350&&!e.target.closest('button'))e.preventDefault();lastTouchEnd=t;},{passive:false});
+/* if the page was zoomed or scrolled anyway, snap back */
+const unzoom=()=>{if(scrollX||scrollY)scrollTo(0,0);};
+addEventListener('scroll',unzoom);if(window.visualViewport)visualViewport.addEventListener('resize',()=>{unzoom();resize();});
 /* keep retrying on real activation events until the audio context is running (iOS ignores touchstart/pointerdown) */
 const firstGesture=()=>{if(!SFX.needsUnlock)return;SFX.unlock();setSndUI();};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)setSndUI();});
